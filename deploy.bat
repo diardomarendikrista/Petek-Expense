@@ -22,10 +22,10 @@ echo [5/6] Building the Next.js project...
 call npm run build
 
 echo [6/6] Starting PM2 processes...
-@REM Memulai proses utama aplikasi
-call pm2 start npm --name "petek-expense" -- start
+@REM Memulai proses utama aplikasi (gunakan npm.cmd untuk kompatibilitas Windows)
+call pm2 start npm.cmd --name "petek-expense" -- start
 @REM Memulai proses worker backup
-call pm2 start npm --name "petek-expense-backup" -- run backup
+call pm2 start npm.cmd --name "petek-expense-backup" -- run backup
 call pm2 save
 
 echo ==========================================
