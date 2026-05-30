@@ -44,20 +44,42 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
 
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error", event.error);
-      if (options.onError) {
-        options.onError(event.error);
+      // 'no-speech' and 'network' are common on Android — don't treat as fatal
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        if (options.onError) {
+          options.onError(event.error);
+        }
+        setIsRecording(false);
       }
-      setIsRecording(false);
+      // Other errors (no-speech, network, aborted) will be handled by onend auto-restart
     };
 
     recognition.onend = () => {
-      setIsRecording(false);
+      // Check if the user intentionally stopped or Android killed it
+      if (recognitionRef.current?._isStopping) {
+        // User pressed stop — process normally
+        recognitionRef.current._isStopping = false;
+        setIsRecording(false);
+      } else if (recognitionRef.current?._isRecording) {
+        // Android killed it silently — restart immediately without resetting transcript
+        try {
+          recognition.start();
+        } catch (e) {
+          // If restart fails, give up gracefully
+          setIsRecording(false);
+        }
+      }
     };
 
     recognitionRef.current = recognition;
+    // Attach tracking flags directly onto the ref object
+    recognitionRef.current._isStopping = false;
+    recognitionRef.current._isRecording = false;
 
     return () => {
       if (recognitionRef.current) {
+        recognitionRef.current._isRecording = false;
+        recognitionRef.current._isStopping = true;
         recognitionRef.current.abort();
       }
     };
@@ -67,6 +89,8 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
     setTranscript("");
     if (recognitionRef.current) {
       try {
+        recognitionRef.current._isStopping = false;
+        recognitionRef.current._isRecording = true;
         recognitionRef.current.start();
         setIsRecording(true);
       } catch (error) {
@@ -78,6 +102,9 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
 
   const stopRecording = useCallback(() => {
     if (recognitionRef.current) {
+      // Flag as intentional stop BEFORE calling stop()
+      recognitionRef.current._isStopping = true;
+      recognitionRef.current._isRecording = false;
       recognitionRef.current.stop();
       setIsRecording(false);
     }
