@@ -13,6 +13,7 @@ export function BottomNav() {
         <div className="flex h-16 items-center justify-around px-2">
           <Link
             href="/"
+            replace
             className={`flex flex-1 flex-col items-center justify-center gap-1 h-full transition-colors ${
               pathname === "/"
                 ? "text-brand-500"
@@ -24,6 +25,7 @@ export function BottomNav() {
           </Link>
           <Link
             href="/history"
+            replace
             className={`flex flex-1 flex-col items-center justify-center gap-1 h-full transition-colors ${
               pathname === "/history"
                 ? "text-brand-500"
