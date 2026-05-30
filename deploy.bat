@@ -3,8 +3,9 @@ echo ==========================================
 echo Starting Deployment for Petek Expense (Next.js)
 echo ==========================================
 
-echo [1/6] Pulling latest code from git...
-git pull origin main
+echo [1/6] Pulling latest code from git (Force)...
+git fetch origin
+git reset --hard origin/main
 
 echo [2/6] Stopping PM2 processes...
 @REM Menghentikan proses yang lama agar tidak ada file Prisma yang di-lock di Windows
