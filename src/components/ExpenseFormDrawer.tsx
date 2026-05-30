@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,7 +22,7 @@ type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
 interface ExpenseFormDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: ExpenseFormValues) => void;
+  onSave: (data: ExpenseFormValues) => Promise<void> | void;
   onDelete?: (id: string) => void;
   isLoading: boolean;
   initialData?: ExpenseFormValues | null;
@@ -51,30 +51,64 @@ export function ExpenseFormDrawer({
     },
   });
 
+  const wasEditingRef = useRef(false);
+
   useEffect(() => {
-    if (initialData && isOpen) {
-      reset({
-        id: initialData.id,
-        amount: initialData.amount,
-        category: initialData.category,
-        description: initialData.description || "",
-        date: initialData.date || new Date().toISOString().split("T")[0],
-      });
-    } else if (!initialData && isOpen) {
-      reset({
-        amount: 0,
-        category: EXPENSE_CATEGORIES[0],
-        description: "",
-        date: new Date().toISOString().split("T")[0],
-      });
+    if (isOpen) {
+      if (initialData) {
+        wasEditingRef.current = true;
+        reset({
+          id: initialData.id,
+          amount: initialData.amount,
+          category: initialData.category,
+          description: initialData.description || "",
+          date: initialData.date || new Date().toISOString().split("T")[0],
+        });
+      } else {
+        if (wasEditingRef.current) {
+          // Previously editing, now opening new entry. Reset form.
+          reset({
+            amount: 0,
+            category: EXPENSE_CATEGORIES[0],
+            description: "",
+            date: new Date().toISOString().split("T")[0],
+          });
+          wasEditingRef.current = false;
+        }
+        // Else: Previously new entry, now opening new entry. Preserve values!
+      }
     }
   }, [initialData, isOpen, reset]);
+
+  const resetDefault = () => {
+    reset({
+      amount: 0,
+      category: EXPENSE_CATEGORIES[0],
+      description: "",
+      date: new Date().toISOString().split("T")[0],
+    });
+    wasEditingRef.current = false;
+  };
+
+  const handleCancel = () => {
+    resetDefault();
+    onClose();
+  };
+
+  const internalOnSave = async (data: ExpenseFormValues) => {
+    try {
+      await onSave(data);
+      resetDefault();
+    } catch (e) {
+      // Error handled by parent
+    }
+  };
 
   const isEditing = !!initialData?.id;
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={isEditing ? "Edit Pengeluaran" : "Input Manual"}>
-      <form onSubmit={handleSubmit(onSave)} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(internalOnSave)} className="flex flex-col gap-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-muted-foreground">
             Jumlah (Rp)
@@ -151,7 +185,7 @@ export function ExpenseFormDrawer({
             type="button"
             variant="outline"
             className="flex-1"
-            onClick={onClose}
+            onClick={handleCancel}
             disabled={isLoading}
           >
             Batal

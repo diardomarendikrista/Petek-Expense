@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { Calendar, Settings } from "lucide-react";
+import { Calendar, Settings, Bot, Check, LineChart } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./Card";
 import { DateRangeDrawer } from "./DateRangeDrawer";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
 import { ConfirmModal } from "./ConfirmModal";
+import { AlertModal } from "./AlertModal";
 import {
   getExpensesByDateRange,
   updateExpense,
@@ -41,6 +42,12 @@ export function HistoryClient() {
   const [isSaving, setIsSaving] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    desc: string;
+    isError?: boolean;
+  } | null>(null);
 
   const fetchData = async (range: DateRange | undefined) => {
     setIsLoading(true);
@@ -97,7 +104,11 @@ export function HistoryClient() {
       fetchData(dateRange);
     } catch (error) {
       console.error("Failed to update", error);
-      alert("Gagal menyimpan transaksi.");
+      setAlertConfig({
+        title: "Terjadi Kesalahan",
+        desc: "Gagal menyimpan transaksi.",
+        isError: true,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -114,7 +125,11 @@ export function HistoryClient() {
       fetchData(dateRange);
     } catch (error) {
       console.error("Failed to delete", error);
-      alert("Gagal menghapus transaksi.");
+      setAlertConfig({
+        title: "Terjadi Kesalahan",
+        desc: "Gagal menghapus transaksi.",
+        isError: true,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -134,6 +149,29 @@ export function HistoryClient() {
     if (!dateRange.to) return fromStr;
     const toStr = format(dateRange.to, "d MMM yyyy", { locale: localeId });
     return `${fromStr} - ${toStr}`;
+  };
+
+  const handleCopyPrompt = () => {
+    if (!data || data.expenses.length === 0) return;
+
+    let prompt = `Tolong analisa pengeluaran saya berikut ini dan berikan insight, saran penghematan, serta evaluasi kebiasaan finansial saya.\n\n`;
+
+    prompt += `Total Pengeluaran: ${formatCurrency(data.total)}\n`;
+    prompt += `Periode: ${getDateLabel()}\n\n`;
+
+    prompt += `Pengeluaran berdasarkan kategori:\n`;
+    data.byCategory.forEach((c: any) => {
+      prompt += `- ${c.category}: ${formatCurrency(c.total)}\n`;
+    });
+
+    prompt += `\nDaftar Transaksi Detail:\n`;
+    data.expenses.forEach((tx: any) => {
+      prompt += `- ${format(new Date(tx.expenseDate), "d MMM yyyy", { locale: localeId })}: ${tx.category} - ${formatCurrency(tx.amount)} ${tx.description ? `(${tx.description})` : ""}\n`;
+    });
+
+    navigator.clipboard.writeText(prompt);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   return (
@@ -179,7 +217,10 @@ export function HistoryClient() {
             {isLoading ? (
               <div className="space-y-3 mt-4 pt-4 border-t border-white/10">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex justify-between items-center">
+                  <div
+                    key={i}
+                    className="flex justify-between items-center"
+                  >
                     <div className="h-5 w-24 bg-white/20 animate-pulse rounded-md" />
                     <div className="h-5 w-20 bg-white/20 animate-pulse rounded-md" />
                   </div>
@@ -188,44 +229,137 @@ export function HistoryClient() {
                   <div className="h-4 w-32 bg-white/20 animate-pulse rounded-md" />
                 </div>
               </div>
-            ) : data.byCategory.length > 0 && (
-              <div className="space-y-2 mt-4 pt-4 border-t border-white/10">
-                {(showAllCategories
-                  ? data.byCategory
-                  : data.byCategory.slice(0, 3)
-                ).map((item: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center text-sm"
-                  >
-                    <span className="text-white/90">{item.category}</span>
-                    <span className="font-semibold">
-                      {formatCurrency(item.total)}
-                    </span>
-                  </div>
-                ))}
-                {data.byCategory.length > 3 && (
-                  <button
-                    onClick={() => setShowAllCategories(!showAllCategories)}
-                    className="w-full text-xs text-white/60 hover:text-white/90 transition-colors text-center mt-2 pt-1 pb-1 font-medium"
-                  >
-                    {showAllCategories
-                      ? "Sembunyikan"
-                      : `+${data.byCategory.length - 3} kategori lainnya`}
-                  </button>
-                )}
-              </div>
+            ) : (
+              data.byCategory.length > 0 && (
+                <div className="space-y-2 mt-4 pt-4 border-t border-white/10">
+                  {(showAllCategories
+                    ? data.byCategory
+                    : data.byCategory.slice(0, 3)
+                  ).map((item: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="flex justify-between items-center text-sm"
+                    >
+                      <span className="text-white/90">{item.category}</span>
+                      <span className="font-semibold">
+                        {formatCurrency(item.total)}
+                      </span>
+                    </div>
+                  ))}
+                  {data.byCategory.length > 3 && (
+                    <button
+                      onClick={() => setShowAllCategories(!showAllCategories)}
+                      className="w-full text-xs text-white/60 hover:text-white/90 transition-colors text-center mt-2 pt-1 pb-1 font-medium"
+                    >
+                      {showAllCategories
+                        ? "Sembunyikan"
+                        : `+${data.byCategory.length - 3} kategori lainnya`}
+                    </button>
+                  )}
+                </div>
+              )
             )}
           </div>
         </Card>
 
         <div>
-          <h2 className="text-lg font-semibold mb-4">Daftar Transaksi</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Daftar Transaksi</h2>
+            {!isLoading && data.expenses.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs bg-brand-50 text-brand-600 border-brand-200 hover:bg-brand-100"
+                onClick={handleCopyPrompt}
+              >
+                {isCopied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 mr-1.5" />
+                    Tersalin!
+                  </>
+                ) : (
+                  <>
+                    <Bot className="w-3.5 h-3.5 mr-1.5" />
+                    Analisis AI
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
+          {!isLoading && data.expenses.length > 0 && (
+            <div className="bg-brand-500/10 border border-brand-500/20 rounded-2xl p-4 mb-4">
+              <h3 className="font-semibold text-brand-600 dark:text-brand-400 mb-2 text-sm flex items-center">
+                <LineChart className="w-4 h-4 mr-1.5" />
+                Ringkasan Analisis
+              </h3>
+              <div className="space-y-1.5 text-xs text-foreground/80">
+                <p>
+                  • Kategori terbesar:{" "}
+                  <b>
+                    {data.byCategory.length > 0
+                      ? data.byCategory.reduce((prev: any, curr: any) =>
+                          prev.total > curr.total ? prev : curr,
+                        ).category
+                      : "-"}
+                  </b>{" "}
+                  (
+                  {data.byCategory.length > 0
+                    ? formatCurrency(
+                        data.byCategory.reduce((prev: any, curr: any) =>
+                          prev.total > curr.total ? prev : curr,
+                        ).total,
+                      )
+                    : 0}
+                  ).
+                </p>
+                <p>
+                  • Pengeluaran tertinggi:{" "}
+                  <b>
+                    {data.expenses.length > 0
+                      ? data.expenses.reduce((prev: any, curr: any) =>
+                          prev.amount > curr.amount ? prev : curr,
+                        ).category
+                      : "-"}
+                  </b>{" "}
+                  senilai{" "}
+                  {data.expenses.length > 0
+                    ? formatCurrency(
+                        data.expenses.reduce((prev: any, curr: any) =>
+                          prev.amount > curr.amount ? prev : curr,
+                        ).amount,
+                      )
+                    : 0}
+                  .
+                </p>
+                <p>
+                  • Rata-rata per hari aktif:{" "}
+                  <b>
+                    {formatCurrency(
+                      data.total /
+                        Math.max(
+                          1,
+                          new Set(
+                            data.expenses.map((e: any) =>
+                              new Date(e.expenseDate).toDateString(),
+                            ),
+                          ).size,
+                        ),
+                    )}
+                  </b>
+                  .
+                </p>
+              </div>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-card border border-border shadow-sm">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-card border border-border shadow-sm"
+                >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
                     <div className="space-y-2">
@@ -316,6 +450,14 @@ export function HistoryClient() {
         confirmText="Hapus"
         isDestructive={true}
         isLoading={isSaving}
+      />
+
+      <AlertModal
+        isOpen={!!alertConfig}
+        onClose={() => setAlertConfig(null)}
+        title={alertConfig?.title || ""}
+        description={alertConfig?.desc || ""}
+        isError={alertConfig?.isError}
       />
     </div>
   );

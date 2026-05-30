@@ -7,6 +7,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { updateSettings, changePassword } from "@/app/actions/settingsActions";
 import { signOut } from "next-auth/react";
+import { ConfirmModal } from "./ConfirmModal";
 
 interface SettingsClientProps {
   user: any;
@@ -28,6 +29,8 @@ export function SettingsClient({ user, initialSettings }: SettingsClientProps) {
   
   const [prefsMessage, setPrefsMessage] = useState("");
   const [pwdMessage, setPwdMessage] = useState("");
+  
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const handleSavePreferences = async () => {
     setIsSavingPrefs(true);
@@ -72,10 +75,12 @@ export function SettingsClient({ user, initialSettings }: SettingsClientProps) {
     }
   };
 
-  const handleLogout = async () => {
-    if (confirm("Apakah Anda yakin ingin keluar?")) {
-      await signOut({ callbackUrl: "/login" });
-    }
+  const handleLogout = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const confirmLogout = async () => {
+    await signOut({ callbackUrl: "/login" });
   };
 
   return (
@@ -206,6 +211,16 @@ export function SettingsClient({ user, initialSettings }: SettingsClientProps) {
         </section>
 
       </div>
+
+      <ConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        title="Keluar Akun?"
+        description="Apakah Anda yakin ingin keluar dari akun ini?"
+        confirmText="Keluar"
+        isDestructive={true}
+      />
     </div>
   );
 }

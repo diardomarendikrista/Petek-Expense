@@ -8,6 +8,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
   session: {
     strategy: "jwt",
+    maxAge: 2147483647, // Maksimal nilai integer 32-bit (sekitar 68 tahun), karena browser/cookie tidak memiliki opsi 'tanpa batas' murni
   },
   pages: {
     signIn: "/login",
@@ -36,7 +37,7 @@ export const authOptions: NextAuthOptions = {
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
-          user.password
+          user.password,
         );
 
         if (!isPasswordValid) {

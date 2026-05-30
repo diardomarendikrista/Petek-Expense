@@ -9,6 +9,7 @@ import { saveExpense, updateExpense, deleteExpense } from "@/app/actions/expense
 import { ExpenseConfirmation } from "./ExpenseConfirmation";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
 import { ConfirmModal } from "./ConfirmModal";
+import { AlertModal } from "./AlertModal";
 import { Card, CardHeader, CardTitle } from "./Card";
 import { Button } from "./ui/button";
 import { Plus, Settings } from "lucide-react";
@@ -42,13 +43,18 @@ export function DashboardClient({
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [activeTab, setActiveTab] = useState<"week" | "month">("month");
+  const [alertConfig, setAlertConfig] = useState<{title: string, desc: string, isError?: boolean} | null>(null);
 
   const currentTotal = activeTab === "month" ? monthlyTotal : weeklyTotal;
   const currentCategories = activeTab === "month" ? monthlyByCategory : weeklyByCategory;
 
   const handleMicClick = () => {
     if (!isSupported) {
-      alert("Browser Anda tidak mendukung fitur rekam suara (Web Speech API). Silakan gunakan Chrome/Edge/Safari terbaru, atau gunakan input manual.");
+      setAlertConfig({
+        title: "Fitur Tidak Didukung",
+        desc: "Browser Anda tidak mendukung fitur rekam suara (Web Speech API). Silakan gunakan Chrome/Edge/Safari terbaru, atau gunakan input manual.",
+        isError: true,
+      });
       return;
     }
 
@@ -69,7 +75,7 @@ export function DashboardClient({
       setIsConfirmationOpen(true);
     } catch (error) {
       console.error("Failed to parse", error);
-      alert("Gagal memproses suara. Silakan coba lagi atau input manual.");
+      setAlertConfig({ title: "Terjadi Kesalahan", desc: "Gagal memproses suara. Silakan coba lagi atau input manual.", isError: true });
     } finally {
       setIsProcessing(false);
     }
@@ -89,7 +95,7 @@ export function DashboardClient({
       setSelectedExpense(null);
     } catch (error) {
       console.error("Failed to save", error);
-      alert("Gagal menyimpan transaksi.");
+      setAlertConfig({ title: "Terjadi Kesalahan", desc: "Gagal menyimpan transaksi.", isError: true });
     } finally {
       setIsSaving(false);
     }
@@ -121,7 +127,7 @@ export function DashboardClient({
       setSelectedExpense(null);
     } catch (error) {
       console.error("Failed to delete", error);
-      alert("Gagal menghapus transaksi.");
+      setAlertConfig({ title: "Terjadi Kesalahan", desc: "Gagal menghapus transaksi.", isError: true });
     } finally {
       setIsSaving(false);
     }
@@ -307,6 +313,14 @@ export function DashboardClient({
         confirmText="Hapus"
         isDestructive={true}
         isLoading={isSaving}
+      />
+
+      <AlertModal
+        isOpen={!!alertConfig}
+        onClose={() => setAlertConfig(null)}
+        title={alertConfig?.title || ""}
+        description={alertConfig?.desc || ""}
+        isError={alertConfig?.isError}
       />
     </div>
   );

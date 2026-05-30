@@ -22,6 +22,7 @@ export function Drawer({
   className,
 }: DrawerProps) {
   const [mounted, setMounted] = useState(false);
+  const [drawerId] = useState(() => Math.random().toString(36).substring(7));
 
   useEffect(() => {
     setMounted(true);
@@ -31,15 +32,27 @@ export function Drawer({
     if (isOpen) {
       document.body.style.overflow = "hidden";
 
-      // Handle mobile hardware back button dengan menambahkan hash URL
-      window.history.pushState(
-        { drawerOpen: true },
-        "",
-        window.location.pathname + window.location.search + "#drawer",
-      );
+      // Handle mobile hardware back button
+      if (window.history.state?.drawerOpen) {
+        // If another drawer is already open, replace its state to avoid polluting history
+        window.history.replaceState(
+          { drawerOpen: true, drawerId },
+          "",
+          window.location.pathname + window.location.search + "#drawer",
+        );
+      } else {
+        window.history.pushState(
+          { drawerOpen: true, drawerId },
+          "",
+          window.location.pathname + window.location.search + "#drawer",
+        );
+      }
 
-      const handlePopState = () => {
-        onClose();
+      const handlePopState = (e: PopStateEvent) => {
+        // Only close if the popstate indicates the drawer is closed (state is null or no drawerOpen)
+        if (!e.state?.drawerOpen) {
+          onClose();
+        }
       };
 
       window.addEventListener("popstate", handlePopState);
@@ -48,10 +61,12 @@ export function Drawer({
         document.body.style.overflow = "unset";
         window.removeEventListener("popstate", handlePopState);
 
-        // If closed via UI button (not hardware back), clean up the history state
-        if (window.history.state?.drawerOpen) {
-          window.history.back();
-        }
+        // Defer checking history to allow another drawer to mount and replace state
+        setTimeout(() => {
+          if (window.history.state?.drawerId === drawerId) {
+            window.history.back();
+          }
+        }, 0);
       };
     } else {
       document.body.style.overflow = "unset";
