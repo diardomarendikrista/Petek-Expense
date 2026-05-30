@@ -26,6 +26,7 @@ interface ExpenseFormDrawerProps {
   onDelete?: (id: string) => void;
   isLoading: boolean;
   initialData?: ExpenseFormValues | null;
+  title?: string;
 }
 
 export function ExpenseFormDrawer({
@@ -35,6 +36,7 @@ export function ExpenseFormDrawer({
   onDelete,
   isLoading,
   initialData,
+  title,
 }: ExpenseFormDrawerProps) {
   const {
     register,
@@ -105,9 +107,10 @@ export function ExpenseFormDrawer({
   };
 
   const isEditing = !!initialData?.id;
+  const drawerTitle = title ?? (isEditing ? "Edit Pengeluaran" : initialData ? "Konfirmasi AI" : "Input Manual");
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title={isEditing ? "Edit Pengeluaran" : "Input Manual"}>
+    <Drawer isOpen={isOpen} onClose={onClose} title={drawerTitle}>
       <form onSubmit={handleSubmit(internalOnSave)} className="flex flex-col gap-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-muted-foreground">

@@ -4,13 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MicButton } from "./MicButton";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
-import { parseExpense, ParsedExpense } from "@/app/actions/parseExpense";
+import { parseExpense } from "@/app/actions/parseExpense";
 import { saveExpense, updateExpense, deleteExpense } from "@/app/actions/expenseActions";
-import { ExpenseConfirmation } from "./ExpenseConfirmation";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
 import { ConfirmModal } from "./ConfirmModal";
 import { AlertModal } from "./AlertModal";
-import { Card, CardHeader, CardTitle } from "./Card";
+import { Card } from "./Card";
 import { Button } from "./ui/button";
 import { Plus, Settings } from "lucide-react";
 
@@ -34,8 +33,6 @@ export function DashboardClient({
     useSpeechRecognition({ lang: "id-ID" });
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [parsedData, setParsedData] = useState<ParsedExpense | null>(null);
-  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<any>(null);
@@ -71,8 +68,14 @@ export function DashboardClient({
     setIsProcessing(true);
     try {
       const result = await parseExpense(text);
-      setParsedData(result);
-      setIsConfirmationOpen(true);
+      // Map AI result directly to ExpenseFormDrawer's initialData shape
+      setSelectedExpense({
+        amount: result.amount,
+        category: result.category,
+        description: result.description,
+        date: new Date().toISOString().split("T")[0],
+      });
+      setIsManualOpen(true);
     } catch (error) {
       console.error("Failed to parse", error);
       setAlertConfig({ title: "Terjadi Kesalahan", desc: "Gagal memproses suara. Silakan coba lagi atau input manual.", isError: true });
@@ -84,14 +87,12 @@ export function DashboardClient({
   const handleSaveExpense = async (data: any) => {
     setIsSaving(true);
     try {
-      if (selectedExpense) {
+      if (selectedExpense?.id) {
         await updateExpense(selectedExpense.id, data);
       } else {
         await saveExpense(data);
       }
-      setIsConfirmationOpen(false);
       setIsManualOpen(false);
-      setParsedData(null);
       setSelectedExpense(null);
     } catch (error) {
       console.error("Failed to save", error);
@@ -283,15 +284,7 @@ export function DashboardClient({
         </div>
       </div>
 
-      {/* Drawers */}
-      <ExpenseConfirmation
-        isOpen={isConfirmationOpen}
-        onClose={() => setIsConfirmationOpen(false)}
-        parsedData={parsedData}
-        onConfirm={handleSaveExpense}
-        isLoading={isSaving}
-      />
-
+      {/* Unified Drawer for AI confirmation, manual input, and edit */}
       <ExpenseFormDrawer
         isOpen={isManualOpen}
         onClose={() => {
