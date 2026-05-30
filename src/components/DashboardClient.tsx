@@ -12,6 +12,8 @@ import { AlertModal } from "./AlertModal";
 import { Card } from "./Card";
 import { Button } from "./ui/button";
 import { Plus, Settings } from "lucide-react";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 
 interface DashboardClientProps {
   weeklyTotal: number;
@@ -19,6 +21,12 @@ interface DashboardClientProps {
   monthlyTotal: number;
   monthlyByCategory: any[];
   recentTransactions: any[];
+  cycle: {
+    monthStart: string;
+    monthEnd: string;
+    weekStart: string;
+    weekEnd: string;
+  };
 }
 
 export function DashboardClient({
@@ -27,6 +35,7 @@ export function DashboardClient({
   monthlyTotal,
   monthlyByCategory,
   recentTransactions,
+  cycle,
 }: DashboardClientProps) {
   const router = useRouter();
   const { isRecording, startRecording, stopRecording, transcript, isSupported } =
@@ -44,6 +53,13 @@ export function DashboardClient({
 
   const currentTotal = activeTab === "month" ? monthlyTotal : weeklyTotal;
   const currentCategories = activeTab === "month" ? monthlyByCategory : weeklyByCategory;
+
+  const getDateRangeLabel = () => {
+    if (!cycle) return "";
+    const start = activeTab === "month" ? new Date(cycle.monthStart) : new Date(cycle.weekStart);
+    const end = activeTab === "month" ? new Date(cycle.monthEnd) : new Date(cycle.weekEnd);
+    return `${format(start, "d MMM yy", { locale: localeId })} - ${format(end, "d MMM yy", { locale: localeId })}`;
+  };
 
   const handleMicClick = () => {
     if (!isSupported) {
@@ -154,10 +170,12 @@ export function DashboardClient({
         </Button>
       </header>
 
-      {/* Main Stats */}
       <div className="px-6 pb-6 pt-4">
         <p className="text-sm font-medium text-muted-foreground mb-1">
           Total {activeTab === "month" ? "Bulan" : "Minggu"} Ini
+        </p>
+        <p className="text-xs text-muted-foreground mb-1">
+          {getDateRangeLabel()}
         </p>
         <p className="text-5xl font-bold tracking-tighter">
           {formatCurrency(currentTotal)}
@@ -255,7 +273,10 @@ export function DashboardClient({
           
           <Card className="bg-gradient-to-br from-brand-600 to-brand-900 border-none text-white">
             <div className="p-4">
-              <p className="text-white/80 text-sm mb-1">Total {activeTab === "month" ? "Bulan" : "Minggu"} Ini</p>
+              <div className="flex flex-col mb-1">
+                <p className="text-white/80 text-sm">Total {activeTab === "month" ? "Bulan" : "Minggu"} Ini</p>
+                <p className="text-white/60 text-xs">{getDateRangeLabel()}</p>
+              </div>
               <p className="text-3xl font-bold mb-4">{formatCurrency(currentTotal)}</p>
               
               {currentCategories.length > 0 ? (

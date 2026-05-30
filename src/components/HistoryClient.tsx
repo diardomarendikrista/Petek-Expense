@@ -18,13 +18,31 @@ import {
   deleteExpense,
 } from "@/app/actions/expenseActions";
 
-export function HistoryClient() {
+export function HistoryClient({ initialSettings }: { initialSettings?: any }) {
   const router = useRouter();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const now = new Date();
+    const paydayDate = initialSettings?.paydayDate || 1;
+    
+    let startMonth = now.getMonth();
+    let startYear = now.getFullYear();
+    
+    if (now.getDate() < paydayDate) {
+      startMonth -= 1;
+      if (startMonth < 0) {
+        startMonth = 11;
+        startYear -= 1;
+      }
+    }
+    
+    const startOfMonth = new Date(startYear, startMonth, paydayDate);
+    const endOfMonth = new Date(startOfMonth);
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+    endOfMonth.setDate(endOfMonth.getDate() - 1);
+
     return {
-      from: new Date(now.getFullYear(), now.getMonth(), 1),
-      to: new Date(now.getFullYear(), now.getMonth() + 1, 0),
+      from: startOfMonth,
+      to: endOfMonth,
     };
   });
 
@@ -205,7 +223,10 @@ export function HistoryClient() {
 
         <Card className="bg-gradient-to-br from-brand-600 to-brand-900 border-none text-white">
           <div className="p-4">
-            <p className="text-white/80 text-sm mb-1">Total Pengeluaran</p>
+            <div className="flex flex-col mb-1">
+              <p className="text-white/80 text-sm">Total Pengeluaran</p>
+              <p className="text-white/60 text-xs">{getDateLabel()}</p>
+            </div>
             {isLoading ? (
               <div className="h-9 w-48 bg-white/20 animate-pulse rounded-md mb-4" />
             ) : (

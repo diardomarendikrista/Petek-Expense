@@ -25,6 +25,7 @@ export default async function Home() {
           monthlyTotal={data.monthlyTotal}
           monthlyByCategory={data.monthlyByCategory}
           recentTransactions={data.recentTransactions}
+          cycle={data.cycle}
         />
       </main>
       <BottomNav />
