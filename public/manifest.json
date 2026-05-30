@@ -1,6 +1,6 @@
 {
   "name": "Petek Expense",
-  "short_name": "Petek",
+  "short_name": "Petek Expense",
   "description": "A frictionless, voice-first expense capture tool",
   "start_url": "/",
   "display": "standalone",
