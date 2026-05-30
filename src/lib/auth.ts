@@ -8,7 +8,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
   session: {
     strategy: "jwt",
-    maxAge: 2147483647, // Maksimal nilai integer 32-bit (sekitar 68 tahun), karena browser/cookie tidak memiliki opsi 'tanpa batas' murni
+    maxAge: 100 * 365 * 24 * 60 * 60, // 100 tahun (praktis tidak expired untuk PWA)
   },
   pages: {
     signIn: "/login",
