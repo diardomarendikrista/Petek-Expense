@@ -176,7 +176,6 @@ const initCron = () => {
       await performBackup();
     },
     {
-      scheduled: true,
       timezone: CRON_CONFIG.TIMEZONE,
     }
   );
